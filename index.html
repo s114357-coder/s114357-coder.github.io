@@ -3,126 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的跑酷網頁遊戲</title>
+    <title>網頁跑酷遊戲 - 單檔案版</title>
     <style>
-        /* CSS 樣式：設定遊戲畫面外觀 */
+        /* CSS 樣式直接寫在這裡 */
         body {
-            background-color: #222;
-            color: white;
+            background-color: #1a1a1a;
+            color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden;
+            overflow: hidden; /* 防止手機瀏覽器橡皮筋效果 */
         }
 
-        #game-container {
-            position: relative;
+        .game-container {
             text-align: center;
         }
 
+        h1 {
+            margin-bottom: 10px;
+            color: #4af626;
+            text-shadow: 0 0 10px rgba(74, 246, 38, 0.5);
+        }
+
+        #scoreBoard {
+            font-size: 20px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
         canvas {
-            background-color: #e0e0e0;
-            border: 4px solid #fff;
+            background-color: #222222;
+            border: 4px solid #4af626;
             border-radius: 8px;
+            box-shadow: 0 0 20px rgba(74, 246, 38, 0.2);
             display: block;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-        }
-
-        #score-board {
-            font-size: 24px;
-            margin-top: 15px;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-
-        #game-over-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 32px;
-            color: #ff2a74;
-            font-weight: bold;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 20px 40px;
-            border-radius: 10px;
-            border: 2px solid #ff2a74;
-            display: none;
-            pointer-events: none;
+            max-width: 100%; /* 適應手機螢幕 */
         }
 
         .instruction {
+            margin-top: 15px;
             color: #aaa;
-            font-size: 14px;
-            margin-top: 5px;
+        }
+
+        button {
+            background-color: #4af626;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #39c61d;
+            box-shadow: 0 0 15px rgba(74, 246, 38, 0.6);
         }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
-        
-        <div id="score-board">SCORE: <span id="score">0</span></div>
-        <div class="instruction">按【空白鍵 Space】跳躍 / 重新開始</div>
-        
-        <div id="game-over-text">GAME OVER<br><span style="font-size: 18px; color: #fff;">按空白鍵重新挑戰</span></div>
+    <div class="game-container">
+        <h1>極速跑酷王</h1>
+        <div id="scoreBoard">分數: <span id="score">0</span> | 最高分: <span id="highScore">0</span></div>
+        <canvas id="gameCanvas" width="800" height="300"></canvas>
+        <p class="instruction">按 <b>空白鍵 (Space)</b>、<b>上方向鍵 (↑)</b> 或 <b>點擊畫面</b> 跳躍</p>
+        <button id="startBtn">開始 / 重新遊戲</button>
     </div>
 
     <script>
-        // JavaScript 遊戲邏輯
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const scoreElement = document.getElementById("score");
-        const gameOverText = document.getElementById("game-over-text");
+        // JavaScript 遊戲邏輯直接寫在這裡
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const highScoreEl = document.getElementById('highScore');
+        const startBtn = document.getElementById('startBtn');
 
-        // 遊戲狀態控制
-        let isPlaying = true;
+        // 遊戲狀態
+        let gameRunning = false;
         let score = 0;
+        let highScore = 0;
+        let gameSpeed = 6;
+        let obstacles = [];
+        let gameLoopId;
 
-        // 玩家（主角方塊）屬性
+        // 玩家設定
         const player = {
-            x: 80,
-            y: 300,
-            width: 40,
-            height: 40,
-            color: "#ff2a74",
-            vy: 0,
-            gravity: 0.6,      // 重力大小
-            jumpForce: -12,    // 跳躍力道
+            x: 50,
+            y: 200,
+            width: 30,
+            height: 50,
+            color: '#4af626',
+            velocityY: 0,
+            gravity: 0.6,
+            jumpForce: -12,
             isGrounded: false
         };
 
-        // 障礙物陣列與生成計時器
-        const obstacles = [];
-        let obstacleTimer = 0;
-        let spawnInterval = 90; // 每隔多少影格生成一個障礙物
-
-        // 監聽鍵盤事件
-        window.addEventListener("keydown", (e) => {
-            if (e.code === "Space") {
-                if (!isPlaying) {
-                    resetGame();
-                } else if (player.isGrounded) {
-                    player.vy = player.jumpForce;
-                    player.isGrounded = false;
-                }
+        // 監聽鍵盤與點擊事件
+        window.addEventListener('keydown', (e) => {
+            if ((e.code === 'Space' || e.code === 'ArrowUp') && player.isGrounded && gameRunning) {
+                jump();
             }
         });
 
-        // 隨機生成障礙物
-        function spawnObstacle() {
-            obstacleTimer++;
-            if (obstacleTimer % spawnInterval === 0) {
-                const height = 30 + Math.random() * 25; 
-                obstacles.push({
-                    x: canvas.width,
-                    y: 340 - height,
-                    width: 20,
-                    height: height,
-                    color: "#333",
-        // 隨機生成障礙物
-        function spawnObstacle()
+        canvas.addEventListener('click', () => {
+            if (player.isGrounded && gameRunning) {
+                jump();
+            }
+        });
+
+        startBtn.addEventListener('click', () => {
+            startBtn.blur(); // 移除按鈕焦點，避免空白鍵再次觸發按鈕按壓
+            initGame();
+        });
+
+        function jump() {
+            player.velocityY = player.jumpForce;
+            player.isGrounded = false;
+        }
+
+        // 障礙物類別
+        class Obstacle {
+            constructor() {
+                this.x = canvas.width;
+                this.width = 20 + Math.random() * 20; // 隨機寬度
+                this.height = 30 + Math.random() * 40; // 隨機高度
+                this.y = canvas.height - this.height;
+                this.color = '#ff3333';
+            }
+
+            update() {
+                this.x -= gameSpeed;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+        }
+
+        // 初始化/重置遊戲
+        function initGame() {
+            cancelAnimationFrame(gameLoopId);
+            score = 0;
+            gameSpeed = 6;
+            obstacles = [];
+            player.y = canvas.height - player.height;
+            player.velocityY = 0;
+            player.isGrounded = true;
+            gameRunning = true;
+            scoreEl.innerText = score;
+            update();
+        }
+
+        // 碰撞偵測 (AABB)
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        // 遊戲主迴圈
+        function update() {
+            if (!gameRunning) return;
+
+            // 清除畫面
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 更新與繪製玩家
+            player.velocityY += player.gravity;
+            player.y += player.velocityY;
+
+            // 地面碰撞限制
+            if (player.y + player.height >= canvas.height) {
+                player.y = canvas.height - player.height;
+                player.velocityY = 0;
+                player.isGrounded = true;
+            }
+
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // 2. 處理障礙物
+            // 隨機生成障礙物 (約每 100 幀有機會生成一個，且最後一個障礙物要拉開一定距離)
+            if (Math.random() < 0.015 && (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 250)) {
+                obstacles.push(new Obstacle());
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].update();
+                obstacles[i].draw();
+
+                // 碰撞偵測
+                if (checkCollision(player, obstacles[i])) {
+                    gameOver();
+                    return;
+                }
+
+                // 超出螢幕就刪除，並加分
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    scoreEl.innerText = score;
+                    
+                    // 每得 5 分速度加快
+                    if (score % 5 === 0) {
+                        gameSpeed += 0.5;
+                    }
+                }
+            }
+
+            gameLoopId = requestAnimationFrame(update);
+        }
+
+        // 遊戲結束
+        function gameOver() {
+            gameRunning = false;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ff3333';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+
+            if (score > highScore) {
+                highScore = score;
+                highScoreEl.innerText = highScore;
+            }
+        }
+
+        // 初始畫面繪製
+        ctx.fillStyle = '#4af626';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('點擊下方按鈕開始遊戲！', canvas.width / 2, canvas.height / 2);
+    </script>
+</body>
+</html>
