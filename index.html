@@ -114,4 +114,15 @@
         });
 
         // 隨機生成障礙物
+        function spawnObstacle() {
+            obstacleTimer++;
+            if (obstacleTimer % spawnInterval === 0) {
+                const height = 30 + Math.random() * 25; 
+                obstacles.push({
+                    x: canvas.width,
+                    y: 340 - height,
+                    width: 20,
+                    height: height,
+                    color: "#333",
+        // 隨機生成障礙物
         function spawnObstacle()
