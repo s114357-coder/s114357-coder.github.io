@@ -3,110 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網頁跑酷遊戲 - 單檔案版</title>
+    <title>極速藍光跑酷王</title>
     <style>
-        /* CSS 樣式直接寫在這裡 */
+        /* ==================== 1. 網頁整體樣式 ==================== */
         body {
-            background-color: #1a1a1a;
+            background-color: #0a0f1d; /* 深藍黑色底 */
             color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden; /* 防止手機瀏覽器橡皮筋效果 */
+            overflow: hidden;
+            /* 科技感背景裝飾 */
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(0, 102, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(0, 242, 254, 0.1) 0%, transparent 40%);
         }
 
         .game-container {
             text-align: center;
+            background: rgba(10, 25, 50, 0.5);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(0, 183, 255, 0.15);
+            border: 1px solid rgba(0, 183, 255, 0.2);
+            backdrop-filter: blur(8px);
         }
 
         h1 {
-            margin-bottom: 10px;
-            color: #4af626;
-            text-shadow: 0 0 10px rgba(74, 246, 38, 0.5);
+            margin: 0 0 10px 0;
+            color: #00b7ff;
+            text-shadow: 0 0 15px rgba(0, 183, 255, 0.6);
+            font-size: 2.2em;
+            letter-spacing: 2px;
         }
 
         #scoreBoard {
-            font-size: 20px;
-            margin-bottom: 15px;
+            font-size: 18px;
+            margin-bottom: 20px;
             font-weight: bold;
+            color: #8fa0dd;
+            letter-spacing: 1px;
         }
 
+        #score, #highScore {
+            color: #00f2fe;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+            font-size: 1.2em;
+        }
+
+        /* ==================== 2. 遊戲畫布樣式 ==================== */
         canvas {
-            background-color: #222222;
-            border: 4px solid #4af626;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(74, 246, 38, 0.2);
+            background: linear-gradient(to bottom, #071126, #0d2046); /* 畫布深藍漸層 */
+            border: 3px solid #00b7ff;
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0, 183, 255, 0.3);
             display: block;
-            max-width: 100%; /* 適應手機螢幕 */
         }
 
         .instruction {
-            margin-top: 15px;
-            color: #aaa;
+            margin-top: 20px;
+            color: #657b9a;
+            font-size: 14px;
         }
 
+        .instruction b {
+            color: #00f2fe;
+        }
+
+        /* ==================== 3. 科技感按鈕樣式 ==================== */
         button {
-            background-color: #4af626;
-            color: #1a1a1a;
+            background: linear-gradient(45deg, #0072ff, #00f2fe);
+            color: #ffffff;
             border: none;
-            padding: 10px 20px;
-            font-size: 18px;
+            padding: 12px 30px;
+            font-size: 16px;
             font-weight: bold;
-            border-radius: 5px;
+            border-radius: 25px;
             cursor: pointer;
-            transition: 0.2s;
-            margin-top: 10px;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
+            letter-spacing: 1px;
         }
 
         button:hover {
-            background-color: #39c61d;
-            box-shadow: 0 0 15px rgba(74, 246, 38, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 242, 254, 0.6);
+        }
+
+        button:active {
+            transform: translateY(1px);
         }
     </style>
 </head>
 <body>
 
     <div class="game-container">
-        <h1>極速跑酷王</h1>
-        <div id="scoreBoard">分數: <span id="score">0</span> | 最高分: <span id="highScore">0</span></div>
+        <h1>極速藍光跑酷王</h1>
+        <div id="scoreBoard">SCORE: <span id="score">0</span> | BEST: <span id="highScore">0</span></div>
         <canvas id="gameCanvas" width="800" height="300"></canvas>
         <p class="instruction">按 <b>空白鍵 (Space)</b>、<b>上方向鍵 (↑)</b> 或 <b>點擊畫面</b> 跳躍</p>
-        <button id="startBtn">開始 / 重新遊戲</button>
+        <button id="startBtn">START GAME</button>
     </div>
 
     <script>
-        // JavaScript 遊戲邏輯直接寫在這裡
+        // ==================== 4. JavaScript 遊戲邏輯 ====================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score');
         const highScoreEl = document.getElementById('highScore');
         const startBtn = document.getElementById('startBtn');
 
-        // 遊戲狀態
         let gameRunning = false;
         let score = 0;
         let highScore = 0;
         let gameSpeed = 6;
         let obstacles = [];
+        let particles = [];
         let gameLoopId;
 
-        // 玩家設定
+        // 玩家設定 (耀眼藍)
         const player = {
-            x: 50,
+            x: 60,
             y: 200,
             width: 30,
-            height: 50,
-            color: '#4af626',
+            height: 45,
+            color: '#00f2fe',
+            glowColor: 'rgba(0, 242, 254, 0.8)',
             velocityY: 0,
             gravity: 0.6,
             jumpForce: -12,
             isGrounded: false
         };
 
-        // 監聽鍵盤與點擊事件
+        // 粒子特效類別（跳躍時的藍色碎光）
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 4 + 2;
+                this.speedX = Math.random() * -3 - 1;
+                this.speedY = (Math.random() - 0.5) * 2;
+                this.alpha = 1;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.alpha -= 0.03;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = '#00b7ff';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#00b7ff';
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        // 障礙物類別 (深藍水晶障礙)
+        class Obstacle {
+            constructor() {
+                this.x = canvas.width;
+                this.width = 20 + Math.random() * 15;
+                this.height = 35 + Math.random() * 35;
+                this.y = canvas.height - this.height;
+                this.color = '#0055ff';
+                this.glowColor = 'rgba(0, 85, 255, 0.8)';
+            }
+            update() {
+                this.x -= gameSpeed;
+            }
+            draw() {
+                ctx.save();
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.glowColor;
+                // 畫出帶有發光科技感的方塊
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                // 加一條亮藍色的邊框
+                ctx.strokeStyle = '#00f2fe';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+                ctx.restore();
+            }
+        }
+
+        // 事件監聽
         window.addEventListener('keydown', (e) => {
             if ((e.code === 'Space' || e.code === 'ArrowUp') && player.isGrounded && gameRunning) {
                 jump();
@@ -120,41 +207,25 @@
         });
 
         startBtn.addEventListener('click', () => {
-            startBtn.blur(); // 移除按鈕焦點，避免空白鍵再次觸發按鈕按壓
+            startBtn.blur();
             initGame();
         });
 
         function jump() {
             player.velocityY = player.jumpForce;
             player.isGrounded = false;
-        }
-
-        // 障礙物類別
-        class Obstacle {
-            constructor() {
-                this.x = canvas.width;
-                this.width = 20 + Math.random() * 20; // 隨機寬度
-                this.height = 30 + Math.random() * 40; // 隨機高度
-                this.y = canvas.height - this.height;
-                this.color = '#ff3333';
-            }
-
-            update() {
-                this.x -= gameSpeed;
-            }
-
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
+            // 生成噴射粒子
+            for (let i = 0; i < 12; i++) {
+                particles.push(new Particle(player.x + player.width / 2, player.y + player.height));
             }
         }
 
-        // 初始化/重置遊戲
         function initGame() {
             cancelAnimationFrame(gameLoopId);
             score = 0;
             gameSpeed = 6;
             obstacles = [];
+            particles = [];
             player.y = canvas.height - player.height;
             player.velocityY = 0;
             player.isGrounded = true;
@@ -163,7 +234,6 @@
             update();
         }
 
-        // 碰撞偵測 (AABB)
         function checkCollision(rect1, rect2) {
             return rect1.x < rect2.x + rect2.width &&
                    rect1.x + rect1.width > rect2.x &&
@@ -171,29 +241,50 @@
                    rect1.y + rect1.height > rect2.y;
         }
 
-        // 遊戲主迴圈
+        // 遊戲主流程
         function update() {
             if (!gameRunning) return;
 
-            // 清除畫面
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 1. 更新與繪製玩家
+            // 繪製背景裝飾線（科技感地平線）
+            ctx.strokeStyle = 'rgba(0, 183, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - 2);
+            ctx.lineTo(canvas.width, canvas.height - 2);
+            ctx.stroke();
+
+            // 1. 玩家物理與繪製
             player.velocityY += player.gravity;
             player.y += player.velocityY;
 
-            // 地面碰撞限制
             if (player.y + player.height >= canvas.height) {
                 player.y = canvas.height - player.height;
                 player.velocityY = 0;
                 player.isGrounded = true;
             }
 
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+            // 玩家跑步時也會有微量粒子
+            if (player.isGrounded && Math.random() < 0.4) {
+                particles.push(new Particle(player.x, player.y + player.height - 5));
+            }
 
-            // 2. 處理障礙物
-            // 隨機生成障礙物 (約每 100 幀有機會生成一個，且最後一個障礙物要拉開一定距離)
+            ctx.save();
+            ctx.fillStyle = player.color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = player.glowColor;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.restore();
+
+            // 2. 處理粒子特效
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].alpha <= 0) particles.splice(i, 1);
+            }
+
+            // 3. 處理障礙物
             if (Math.random() < 0.015 && (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 250)) {
                 obstacles.push(new Obstacle());
             }
@@ -202,38 +293,35 @@
                 obstacles[i].update();
                 obstacles[i].draw();
 
-                // 碰撞偵測
                 if (checkCollision(player, obstacles[i])) {
                     gameOver();
                     return;
                 }
 
-                // 超出螢幕就刪除，並加分
                 if (obstacles[i].x + obstacles[i].width < 0) {
                     obstacles.splice(i, 1);
                     score++;
                     scoreEl.innerText = score;
-                    
-                    // 每得 5 分速度加快
-                    if (score % 5 === 0) {
-                        gameSpeed += 0.5;
-                    }
+                    if (score % 5 === 0) gameSpeed += 0.5;
                 }
             }
 
             gameLoopId = requestAnimationFrame(update);
         }
 
-        // 遊戲結束
         function gameOver() {
             gameRunning = false;
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillStyle = 'rgba(5, 12, 28, 0.85)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.fillStyle = '#ff3333';
-            ctx.font = 'bold 40px Arial';
+            ctx.save();
+            ctx.fillStyle = '#00f2fe';
+            ctx.font = 'bold 36px Arial';
             ctx.textAlign = 'center';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00f2fe';
             ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+            ctx.restore();
 
             if (score > highScore) {
                 highScore = score;
@@ -241,11 +329,11 @@
             }
         }
 
-        // 初始畫面繪製
-        ctx.fillStyle = '#4af626';
-        ctx.font = '20px Arial';
+        // 初始載入畫面
+        ctx.fillStyle = '#00b7ff';
+        ctx.font = '18px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('點擊下方按鈕開始遊戲！', canvas.width / 2, canvas.height / 2);
+        ctx.fillText('READY? CLICK START TO PLAY', canvas.width / 2, canvas.height / 2);
     </script>
 </body>
 </html>
